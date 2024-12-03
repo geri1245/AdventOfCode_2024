@@ -1,4 +1,4 @@
-with open("./1/input.txt", "r") as input_file:
+with open("./input.txt", "r") as input_file:
     lines = input_file.readlines()
 
 number_list1 = []
