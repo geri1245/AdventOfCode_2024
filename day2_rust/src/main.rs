@@ -12,6 +12,37 @@ fn is_difference_correct(diff: i32, is_increasing: bool) -> bool {
     }
 }
 
+// Extracts the elements from "array" at indices "indices" into a new Vec
+fn extract_elements_from_array(array: &[i32], indices: &[usize]) -> Vec<i32> {
+    let mut extracted_items = Vec::new();
+    for index in indices {
+        extracted_items.push(array[*index]);
+    }
+
+    extracted_items
+}
+
+fn get_all_arrays_with_one_element_missing(array: &[i32]) -> Vec<Vec<i32>> {
+    let all_indices = (0..array.len()).collect::<Vec<_>>();
+    let mut all_combiniations = Vec::new();
+    for i in 0..array.len() {
+        let mut vec_with_one_element_removed = all_indices.clone();
+        vec_with_one_element_removed.remove(i);
+
+        all_combiniations.push(extract_elements_from_array(
+            array,
+            &vec_with_one_element_removed,
+        ));
+    }
+
+    all_combiniations
+}
+
+fn is_sequence_all_same_sign(seq: &[i32], check_positive: bool) -> bool {
+    seq.iter()
+        .all(|elem| is_difference_correct(*elem, check_positive))
+}
+
 fn is_data_safe(levels: &[i32]) -> bool {
     let level_count = levels.len();
 
@@ -21,71 +52,23 @@ fn is_data_safe(levels: &[i32]) -> bool {
     }
 
     // Calculate the difference between neighboring items, we will make something out of them later
-    let mut neighbor_differences = levels
+    let neighbor_differences = levels
         .iter()
         .enumerate()
         .skip(1)
         .map(|(index, item)| item - levels[index - 1])
         .collect::<Vec<_>>();
 
-    // These will contain the indices where the neighbors' difference is positive, negative or zero respectively
-    let mut pos_diffs = vec![];
-    let mut neg_diffs = vec![];
-    let mut no_diffs = vec![];
-    // Look through the first 3 items. Based on that we can decide if the sequence is increasing or not.
-    // If we can't decide, that means the sequence is not correct
-    for (index, difference) in neighbor_differences.iter().enumerate().take(4) {
-        if *difference > 0 {
-            pos_diffs.push(index);
-        } else if *difference == 0 {
-            no_diffs.push(index);
-        } else if *difference < 0 {
-            neg_diffs.push(index);
-        }
+    let is_increasing = neighbor_differences[1] > neighbor_differences[0];
+    if is_sequence_all_same_sign(&neighbor_differences, is_increasing) {
+        true
+    } else {
+        let all_arays_with_one_element_missing =
+            get_all_arrays_with_one_element_missing(&neighbor_differences);
+        all_arays_with_one_element_missing
+            .iter()
+            .any(|sequence| is_sequence_all_same_sign(&sequence, is_increasing))
     }
-
-    let is_increasing = pos_diffs.len() > neg_diffs.len();
-    let mut is_correction_available = true;
-    if !is_difference_correct(neighbor_differences[0], is_increasing) {
-        if !is_difference_correct(neighbor_differences[1], is_increasing) {
-            neighbor_differences[1] += neighbor_differences[0];
-        }
-        is_correction_available = false;
-    }
-
-    if !is_difference_correct(
-        neighbor_differences[neighbor_differences.len() - 1],
-        is_increasing,
-    ) {
-        if !is_correction_available {
-            return false;
-        }
-        if !is_difference_correct(
-            neighbor_differences[neighbor_differences.len() - 2],
-            is_increasing,
-        ) {
-            let neighbor_diff_count = neighbor_differences.len();
-            neighbor_differences[neighbor_diff_count - 2] +=
-                neighbor_differences[neighbor_diff_count - 1];
-        }
-        is_correction_available = false;
-    }
-
-    for i in 1..(neighbor_differences.len() - 1) {
-        if !is_difference_correct(neighbor_differences[i], is_increasing) {
-            if is_difference_correct(
-                neighbor_differences[i] + neighbor_differences[i + 1],
-                is_increasing,
-            ) && is_correction_available
-            {
-                is_correction_available = false;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    true
 }
 
 fn main() -> Result<(), io::Error> {
@@ -107,7 +90,7 @@ fn main() -> Result<(), io::Error> {
             safe_level_count += 1;
             println!("{line} is correct!")
         } else {
-            println!("{line} is NOT correct")
+            println!("{line} is NOT correct!")
         }
         lines_processed += 1;
     }
