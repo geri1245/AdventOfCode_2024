@@ -11,13 +11,13 @@ use glam::IVec2;
 enum CellType {
     Obstacle,
     CurrentPosition,
-    Unvisited,
+    FreeSpace,
 }
 
 impl From<char> for CellType {
     fn from(value: char) -> Self {
         match value {
-            '.' => CellType::Unvisited,
+            '.' => CellType::FreeSpace,
             '#' => CellType::Obstacle,
             '^' => CellType::CurrentPosition,
             _ => panic!("This character should never be converted to CellType"),
@@ -46,7 +46,8 @@ fn at<'a>(map: &'a mut Vec<Vec<CellType>>, index: &IVec2) -> Option<&'a CellType
     }
 }
 
-fn count_cells_traversed(
+// Part 1
+fn _count_cells_traversed(
     map: &mut Vec<Vec<CellType>>,
     current_position: IVec2,
     current_direction: IVec2,
@@ -73,6 +74,61 @@ fn count_cells_traversed(
     }
 
     visited_cells.len()
+}
+
+fn will_gurad_get_stuck_in_a_loop(
+    map: &mut Vec<Vec<CellType>>,
+    current_position: IVec2,
+    current_direction: IVec2,
+) -> bool {
+    let mut current_position = current_position;
+    let mut current_direction = current_direction;
+
+    let mut visited_cells = HashSet::new();
+    visited_cells.insert((current_position, current_direction));
+
+    let mut was_stuck_in_loop = false;
+    loop {
+        let possible_next_position = current_position + current_direction;
+
+        if let Some(cell) = at(map, &possible_next_position) {
+            if matches!(cell, CellType::Obstacle) {
+                current_direction = rotate_90_clockwise(current_direction);
+            } else {
+                current_position = possible_next_position;
+                if !visited_cells.insert((current_position, current_direction)) {
+                    // If the guard has already been to this position with this direction, that means it will be a loop
+                    was_stuck_in_loop = true;
+                    break;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    was_stuck_in_loop
+}
+
+fn count_loop_obstacle_placements(
+    map: &mut Vec<Vec<CellType>>,
+    current_position: IVec2,
+    current_direction: IVec2,
+) -> u32 {
+    let mut obstacle_positions_causing_loop = 0;
+
+    for i in 0..map.len() {
+        for j in 0..map[i].len() {
+            if matches!(map[i][j], CellType::FreeSpace) {
+                map[i][j] = CellType::Obstacle;
+                if will_gurad_get_stuck_in_a_loop(map, current_position, current_direction) {
+                    obstacle_positions_causing_loop += 1;
+                }
+                map[i][j] = CellType::FreeSpace;
+            }
+        }
+    }
+    obstacle_positions_causing_loop
 }
 
 fn main() -> Result<(), io::Error> {
@@ -102,8 +158,9 @@ fn main() -> Result<(), io::Error> {
         }
     }
 
-    let cells_visited = count_cells_traversed(&mut map, guard_position, IVec2::new(-1, 0));
+    let num_of_obstacles_causing_loops =
+        count_loop_obstacle_placements(&mut map, guard_position, IVec2::new(-1, 0));
 
-    println!("Number of cells visited: {cells_visited:?}");
+    println!("Number of cells visited: {num_of_obstacles_causing_loops:?}");
     Ok(())
 }
