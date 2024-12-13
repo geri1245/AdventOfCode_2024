@@ -3,11 +3,11 @@ use std::io;
 use common::read_input;
 
 mod common;
-mod day10;
+mod day13;
 
 fn main() -> io::Result<()> {
-    let lines = read_input("inputs/day10.txt")?;
-    let result = day10::_day10_part1(&lines)?;
+    let lines = read_input("inputs/day13.txt")?;
+    let result = day13::solve(&lines)?;
 
     println!("The result is {result}");
     Ok(())
